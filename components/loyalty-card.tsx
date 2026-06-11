@@ -3,11 +3,12 @@
 import { useState } from 'react'
 
 const WORD = 'TSUNDOKU'
-const INITIAL_TILES = Array(8)
+const COLS = 4
+const ROWS = 2
+const INITIAL_TILES = Array(COLS * ROWS)
   .fill(null)
   .map((_, i) => ({
     id: i,
-    letter: WORD[i],
     isUnlocked: false,
   }))
 
@@ -24,8 +25,9 @@ const INITIAL_TILES = Array(8)
 /*  mirror of the slot on its neighbour, so the pieces interlock.       */
 /* ------------------------------------------------------------------ */
 
-const M = 0.2 // tab depth / baseline inset (~20% of the box)
-const CORE = 1 - 2 * M // length of a baseline edge in box units (0.6)
+const M = 0.27 // tab depth / baseline inset (~27% of the box)
+const K = 1 - 2 * M // length of a baseline edge in box units
+const INSET_PCT = (M / K) * 100 // how far tile-inner expands past its cell
 
 const f = (n: number) => Number(n.toFixed(4))
 
@@ -46,13 +48,13 @@ const PROFILE = [
 function mapEdge(side: Side, a: number, out: number): [number, number] {
   switch (side) {
     case 'top':
-      return [M + a * CORE, M - out]
+      return [M + a * K, M - out]
     case 'right':
-      return [1 - M + out, M + a * CORE]
+      return [1 - M + out, M + a * K]
     case 'bottom':
-      return [1 - M - a * CORE, 1 - M + out]
+      return [1 - M - a * K, 1 - M + out]
     case 'left':
-      return [M - out, 1 - M - a * CORE]
+      return [M - out, 1 - M - a * K]
   }
 }
 
@@ -95,6 +97,22 @@ const TILE_EDGES: { t: Edge; r: Edge; b: Edge; l: Edge }[] = [
 ]
 
 const TILE_PATHS = TILE_EDGES.map((e) => buildPath(e.t, e.r, e.b, e.l))
+
+// Position of the shared word layer inside each tile face, expressed as a
+// percentage of the (expanded) tile-face box. Because each tile-face box is
+// exactly grid-width wide once scaled, dropping a grid-width word layer at
+// these offsets makes every fragment line up into one continuous word.
+function wordLayerStyle(i: number): React.CSSProperties {
+  const col = i % COLS
+  const row = Math.floor(i / COLS)
+  return {
+    position: 'absolute',
+    width: `${COLS * K * 100}%`,
+    height: `${ROWS * K * 100}%`,
+    left: `${(M - col * K) * 100}%`,
+    top: `${(M - row * K) * 100}%`,
+  }
+}
 
 export default function LoyaltyCard() {
   const [isFlipped, setIsFlipped] = useState(false)
@@ -206,6 +224,7 @@ export default function LoyaltyCard() {
           background-image: 
             url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" /%3E%3C/filter%3E%3Crect width="100" height="100" fill="white" opacity="0.03" filter="url(%23noise)" /%3E%3C/svg%3E');
           transform: rotateY(180deg);
+          overflow: hidden;
         }
 
         .logo-container {
@@ -240,15 +259,44 @@ export default function LoyaltyCard() {
           font-weight: 300;
         }
 
+        /* The puzzle work area: word layer + jigsaw grid share this box. */
+        .puzzle-area {
+          position: absolute;
+          inset: 24px;
+        }
+
+        /* Single continuous TSUNDOKU layer behind the grid. */
+        .word-base {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 0;
+        }
+
+        .word-text {
+          font-family: var(--font-bebas-neue), 'Bebas Neue', 'Oswald', sans-serif;
+          font-weight: 400;
+          white-space: nowrap;
+          line-height: 1;
+          font-size: clamp(46px, 13.5vw, 104px);
+          letter-spacing: 0.04em;
+          text-align: center;
+        }
+
+        .word-base .word-text {
+          color: #2C2C2C;
+        }
+
         .grid-container {
+          position: absolute;
+          inset: 0;
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          grid-template-rows: repeat(2, 1fr);
+          grid-template-columns: repeat(${COLS}, 1fr);
+          grid-template-rows: repeat(${ROWS}, 1fr);
           gap: 0;
-          width: 100%;
-          height: 100%;
-          padding: 24px;
-          box-sizing: border-box;
+          z-index: 1;
         }
 
         .tile-container {
@@ -261,7 +309,7 @@ export default function LoyaltyCard() {
            lines up exactly with the cell. */
         .tile-inner {
           position: absolute;
-          inset: -33.333%;
+          inset: -${INSET_PCT}%;
           transform-style: preserve-3d;
           transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
@@ -274,25 +322,22 @@ export default function LoyaltyCard() {
           position: absolute;
           inset: 0;
           backface-visibility: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 900;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          font-size: clamp(36px, 8vw, 72px);
-          line-height: 1;
+          overflow: hidden;
         }
 
+        /* Locked: opaque charcoal piece covering the word fragment. */
         .tile-locked {
           background-color: #2C2C2C;
-          color: rgba(44, 44, 44, 0.1);
         }
 
+        .tile-locked .word-text {
+          color: #FFFFFF;
+          opacity: 0.08;
+        }
+
+        /* Unlocked: near-transparent sage membrane revealing the word. */
         .tile-unlocked {
-          background-color: #A8BDB8;
-          background-image: 
-            url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" /%3E%3C/filter%3E%3Crect width="100" height="100" fill="white" opacity="0.03" filter="url(%23noise)" /%3E%3C/svg%3E');
-          color: #2C2C2C;
+          background-color: rgba(168, 189, 184, 0.12);
           transform: rotateY(180deg);
         }
       `}</style>
@@ -312,27 +357,40 @@ export default function LoyaltyCard() {
 
           {/* Back of card */}
           <div className="card-face card-back">
-            <div className="grid-container">
-              {tiles.map((tile) => (
-                <div key={tile.id} className="tile-container">
-                  <div className={`tile-inner ${tile.isUnlocked ? 'unlocked' : ''}`}>
-                    {/* Locked state */}
+            <div className="puzzle-area">
+              {/* Single continuous word layer behind everything */}
+              <div className="word-base">
+                <span className="word-text">{WORD}</span>
+              </div>
+
+              {/* Jigsaw window grid */}
+              <div className="grid-container">
+                {tiles.map((tile) => (
+                  <div key={tile.id} className="tile-container">
                     <div
-                      className="tile-face tile-locked"
-                      style={{ clipPath: `url(#clip${tile.id})` }}
+                      className={`tile-inner ${tile.isUnlocked ? 'unlocked' : ''}`}
                     >
-                      {tile.letter}
-                    </div>
-                    {/* Unlocked state */}
-                    <div
-                      className="tile-face tile-unlocked"
-                      style={{ clipPath: `url(#clip${tile.id})` }}
-                    >
-                      {tile.letter}
+                      {/* Locked face: charcoal piece + faint ghost fragment */}
+                      <div
+                        className="tile-face tile-locked"
+                        style={{ clipPath: `url(#clip${tile.id})` }}
+                      >
+                        <div style={wordLayerStyle(tile.id)}>
+                          <div className="word-base">
+                            <span className="word-text">{WORD}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Unlocked face: transparent membrane (word shows through) */}
+                      <div
+                        className="tile-face tile-unlocked"
+                        style={{ clipPath: `url(#clip${tile.id})` }}
+                      />
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
