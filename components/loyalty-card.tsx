@@ -40,6 +40,27 @@ const INSET_LR = (TAB / CELL_ASPECT) * 100 // left/right: % of cell width
 
 const f = (n: number) => Number(n.toFixed(4))
 
+/* ------------------------------------------------------------------ */
+/*  Outer-corner rounding                                              */
+/*                                                                     */
+/*  Only the four outermost corners of the whole 2x4 grid get rounded  */
+/*  (~12px, matching the card's border-radius). A corner is rounded    */
+/*  iff both its adjacent edges are flat (sign 0) — which happens only  */
+/*  at the grid's extreme corners. Because the tile SVG is drawn with  */
+/*  preserveAspectRatio="none", a circular px radius maps to different  */
+/*  object-unit radii on each axis, so we derive RX/RY separately from */
+/*  a reference render size (everything scales proportionally).        */
+/* ------------------------------------------------------------------ */
+const RADIUS_PX = 12
+const CARD_REF_W = 480 // max-width of .card-container
+const PUZZLE_INSET = 0.86 // 1 - 2 * 7%
+const cellWpx = (CARD_REF_W * PUZZLE_INSET) / COLS
+const cellHpx = ((CARD_REF_W * 9) / 16) * PUZZLE_INSET / ROWS
+const pieceWpx = cellWpx * (1 + (2 * INSET_LR) / 100)
+const pieceHpx = cellHpx * (1 + (2 * INSET_TB) / 100)
+const RX = RADIUS_PX / pieceWpx
+const RY = RADIUS_PX / pieceHpx
+
 type Edge = 1 | -1 | 0 // 1 = tab, -1 = slot, 0 = flat
 type Side = 'top' | 'right' | 'bottom' | 'left'
 
@@ -86,12 +107,57 @@ function emitEdge(side: Side, sign: Edge): string {
   return d
 }
 
+const pt = (x: number, y: number) => `${f(x)} ${f(y)}`
+
 function buildPath(t: Edge, r: Edge, b: Edge, l: Edge): string {
-  let d = `M ${f(MX)} ${f(MY)}`
-  d += emitEdge('top', t)
-  d += emitEdge('right', r)
-  d += emitEdge('bottom', b)
-  d += emitEdge('left', l)
+  // A corner rounds only when BOTH of its edges are flat — true only at
+  // the four outermost corners of the whole grid.
+  const rTL = t === 0 && l === 0
+  const rTR = t === 0 && r === 0
+  const rBR = b === 0 && r === 0
+  const rBL = b === 0 && l === 0
+
+  // Absolute corner coordinates (objectBoundingBox units).
+  const TLx = MX, TLy = MY
+  const TRx = 1 - MX, TRy = MY
+  const BRx = 1 - MX, BRy = 1 - MY
+  const BLx = MX, BLy = 1 - MY
+
+  // Start on the top edge, just past the (possibly rounded) top-left corner.
+  let d = `M ${pt(rTL ? TLx + RX : TLx, TLy)}`
+
+  // Top edge -> top-right corner.
+  if (t === 0) {
+    d += ` L ${pt(rTR ? TRx - RX : TRx, TRy)}`
+  } else {
+    d += emitEdge('top', t)
+  }
+  if (rTR) d += ` Q ${pt(TRx, TRy)} ${pt(TRx, TRy + RY)}`
+
+  // Right edge -> bottom-right corner.
+  if (r === 0) {
+    d += ` L ${pt(BRx, rBR ? BRy - RY : BRy)}`
+  } else {
+    d += emitEdge('right', r)
+  }
+  if (rBR) d += ` Q ${pt(BRx, BRy)} ${pt(BRx - RX, BRy)}`
+
+  // Bottom edge -> bottom-left corner.
+  if (b === 0) {
+    d += ` L ${pt(rBL ? BLx + RX : BLx, BLy)}`
+  } else {
+    d += emitEdge('bottom', b)
+  }
+  if (rBL) d += ` Q ${pt(BLx, BLy)} ${pt(BLx, BLy - RY)}`
+
+  // Left edge -> back toward the top-left corner.
+  if (l === 0) {
+    d += ` L ${pt(TLx, rTL ? TLy + RY : TLy)}`
+  } else {
+    d += emitEdge('left', l)
+  }
+  if (rTL) d += ` Q ${pt(TLx, TLy)} ${pt(TLx + RX, TLy)}`
+
   d += ' Z'
   return d
 }
@@ -286,21 +352,23 @@ export default function LoyaltyCard() {
           overflow: visible;
         }
 
-        /* Locked: solid charcoal fill, NO stroke. Adjacent locked tiles
-           interlock perfectly so the grid reads as one black rectangle. */
+        /* Locked: solid charcoal fill PLUS a same-colour charcoal stroke.
+           The stroke paints over the faint anti-alias seam where adjacent
+           tile fills abut, so the locked grid reads as one uninterrupted
+           black rectangle with zero visible jigsaw edges. */
         .tile-path {
           fill: #2C2C2C;
           stroke: #2C2C2C;
           stroke-width: 1.5;
-          stroke-opacity: 0;
+          stroke-opacity: 1;
           transition: fill 0.4s ease, stroke-opacity 0.3s ease;
         }
 
         /* Unlocked (puzzle incomplete): transparent fill revealing the
-           word layer, with a visible 1.5px charcoal jigsaw outline. */
+           word layer; the charcoal stroke now shows the jigsaw outline
+           against the sage background. */
         .tile-path.unlocked {
           fill: transparent;
-          stroke-opacity: 1;
         }
 
         /* Completion: every tile unlocked — fade the outlines away so the
