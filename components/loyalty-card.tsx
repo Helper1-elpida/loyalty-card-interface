@@ -15,46 +15,58 @@ const INITIAL_TILES = Array(COLS * ROWS)
 /* ------------------------------------------------------------------ */
 /*  SVG jigsaw clip-path geometry                                      */
 /*                                                                     */
-/*  All paths are expressed in objectBoundingBox units (0..1) so the   */
-/*  clip scales with the element and survives the CSS 3D rotateY.      */
+/*  Paths use objectBoundingBox units (0..1) so the clip scales with   */
+/*  the element and survives the CSS 3D card flip.                     */
 /*                                                                     */
-/*  The piece "body" baseline is inset by M on every side. A tab       */
-/*  bulges outward by M (reaching the box edge at 0 or 1); a slot is    */
-/*  the exact inverse, carving inward by M. Because every tile shares   */
-/*  the same profile and box size, a tab on one edge is the precise     */
-/*  mirror of the slot on its neighbour, so the pieces interlock.       */
+/*  The card is 16:9 and the puzzle area is inset proportionally, so   */
+/*  every cell has a fixed aspect ratio r = (16*ROWS)/(9*COLS). The    */
+/*  tab depth is a constant 18% of the cell's SHORTER dimension (the   */
+/*  cell height). Because the box is non-square, that constant pixel   */
+/*  depth maps to different object-units on the x (mx) and y (my)      */
+/*  axes — but every tile shares the same box, so a tab is always the  */
+/*  exact mirror of the neighbouring slot.                             */
 /* ------------------------------------------------------------------ */
 
-const M = 0.27 // tab depth / baseline inset (~27% of the box)
-const K = 1 - 2 * M // length of a baseline edge in box units
-const INSET_PCT = (M / K) * 100 // how far tile-inner expands past its cell
+const CELL_ASPECT = (16 * ROWS) / (9 * COLS) // width / height of a cell
+const TAB = 0.18 // tab depth as a fraction of the shorter (height) dimension
+
+// Baseline insets in objectBoundingBox units (box = cell + 2*tab on each axis).
+const MY = TAB / (1 + 2 * TAB) // vertical inset
+const MX = TAB / (CELL_ASPECT + 2 * TAB) // horizontal inset
+
+// How far each tile-piece is expanded past its grid cell (CSS %, axis-aware).
+const INSET_TB = TAB * 100 // top/bottom: % of cell height
+const INSET_LR = (TAB / CELL_ASPECT) * 100 // left/right: % of cell width
 
 const f = (n: number) => Number(n.toFixed(4))
 
 type Edge = 1 | -1 | 0 // 1 = tab, -1 = slot, 0 = flat
 type Side = 'top' | 'right' | 'bottom' | 'left'
 
-// Edge profile sampled along the edge (a: 0..1) with an outward factor (o).
-// Actual outward distance = o * M * sign. A smooth cubic knob with a neck.
+// Symmetric, semicircle-like knob sampled along an edge.
+// a = position along the edge (0..1); o = outward factor (0..1) of tab depth.
+// Symmetry about a = 0.5 guarantees a tab lines up with the neighbour's slot,
+// since adjacent edges are traversed in opposite directions.
 const PROFILE = [
-  { type: 'L', a: 0.35, o: 0 },
-  { type: 'C', a1: 0.43, o1: 0, a2: 0.4, o2: 1, a: 0.5, o: 1 },
-  { type: 'C', a1: 0.6, o1: 1, a2: 0.57, o2: 0, a: 0.65, o: 0 },
+  { type: 'L', a: 0.36, o: 0 },
+  { type: 'C', a1: 0.36, o1: 0.6, a2: 0.42, o2: 1, a: 0.5, o: 1 },
+  { type: 'C', a1: 0.58, o1: 1, a2: 0.64, o2: 0.6, a: 0.64, o: 0 },
   { type: 'L', a: 1, o: 0 },
 ] as const
 
-// Map a point on a given side (a along the edge, out = outward distance)
-// to absolute objectBoundingBox coordinates.
-function mapEdge(side: Side, a: number, out: number): [number, number] {
+// Map (side, a, o, sign) to absolute objectBoundingBox coordinates.
+function point(side: Side, a: number, o: number, sign: Edge): [number, number] {
+  const dx = sign * o * MX
+  const dy = sign * o * MY
   switch (side) {
     case 'top':
-      return [M + a * K, M - out]
+      return [MX + a * (1 - 2 * MX), MY - dy]
     case 'right':
-      return [1 - M + out, M + a * K]
+      return [1 - MX + dx, MY + a * (1 - 2 * MY)]
     case 'bottom':
-      return [1 - M - a * K, 1 - M + out]
+      return [1 - MX - a * (1 - 2 * MX), 1 - MY + dy]
     case 'left':
-      return [M - out, 1 - M - a * K]
+      return [MX - dx, 1 - MY - a * (1 - 2 * MY)]
   }
 }
 
@@ -62,12 +74,12 @@ function emitEdge(side: Side, sign: Edge): string {
   let d = ''
   for (const seg of PROFILE) {
     if (seg.type === 'L') {
-      const [x, y] = mapEdge(side, seg.a, seg.o * M * sign)
+      const [x, y] = point(side, seg.a, seg.o, sign)
       d += ` L ${f(x)} ${f(y)}`
     } else {
-      const [x1, y1] = mapEdge(side, seg.a1, seg.o1 * M * sign)
-      const [x2, y2] = mapEdge(side, seg.a2, seg.o2 * M * sign)
-      const [x, y] = mapEdge(side, seg.a, seg.o * M * sign)
+      const [x1, y1] = point(side, seg.a1, seg.o1, sign)
+      const [x2, y2] = point(side, seg.a2, seg.o2, sign)
+      const [x, y] = point(side, seg.a, seg.o, sign)
       d += ` C ${f(x1)} ${f(y1)}, ${f(x2)} ${f(y2)}, ${f(x)} ${f(y)}`
     }
   }
@@ -75,7 +87,7 @@ function emitEdge(side: Side, sign: Edge): string {
 }
 
 function buildPath(t: Edge, r: Edge, b: Edge, l: Edge): string {
-  let d = `M ${f(M)} ${f(M)}`
+  let d = `M ${f(MX)} ${f(MY)}`
   d += emitEdge('top', t)
   d += emitEdge('right', r)
   d += emitEdge('bottom', b)
@@ -97,22 +109,6 @@ const TILE_EDGES: { t: Edge; r: Edge; b: Edge; l: Edge }[] = [
 ]
 
 const TILE_PATHS = TILE_EDGES.map((e) => buildPath(e.t, e.r, e.b, e.l))
-
-// Position of the shared word layer inside each tile face, expressed as a
-// percentage of the (expanded) tile-face box. Because each tile-face box is
-// exactly grid-width wide once scaled, dropping a grid-width word layer at
-// these offsets makes every fragment line up into one continuous word.
-function wordLayerStyle(i: number): React.CSSProperties {
-  const col = i % COLS
-  const row = Math.floor(i / COLS)
-  return {
-    position: 'absolute',
-    width: `${COLS * K * 100}%`,
-    height: `${ROWS * K * 100}%`,
-    left: `${(M - col * K) * 100}%`,
-    top: `${(M - row * K) * 100}%`,
-  }
-}
 
 export default function LoyaltyCard() {
   const [isFlipped, setIsFlipped] = useState(false)
@@ -168,15 +164,6 @@ export default function LoyaltyCard() {
           }
           100% {
             transform: rotateY(0deg);
-          }
-        }
-
-        @keyframes flipTile {
-          0% {
-            transform: rotateY(0deg);
-          }
-          100% {
-            transform: rotateY(180deg);
           }
         }
 
@@ -259,13 +246,16 @@ export default function LoyaltyCard() {
           font-weight: 300;
         }
 
-        /* The puzzle work area: word layer + jigsaw grid share this box. */
+        /* Puzzle work area: the shared word layer and the jigsaw grid
+           both fill this box. Inset proportionally so the cell aspect
+           ratio stays constant at every screen size. */
         .puzzle-area {
           position: absolute;
-          inset: 24px;
+          inset: 7%;
         }
 
-        /* Single continuous TSUNDOKU layer behind the grid. */
+        /* Single continuous TSUNDOKU layer sitting BEHIND the grid.
+           Fully covered (hidden) while every tile is locked. */
         .word-base {
           position: absolute;
           inset: 0;
@@ -280,12 +270,8 @@ export default function LoyaltyCard() {
           font-weight: 400;
           white-space: nowrap;
           line-height: 1;
-          font-size: clamp(46px, 13.5vw, 104px);
+          font-size: clamp(48px, 14vw, 112px);
           letter-spacing: 0.04em;
-          text-align: center;
-        }
-
-        .word-base .word-text {
           color: #2C2C2C;
         }
 
@@ -300,45 +286,23 @@ export default function LoyaltyCard() {
         }
 
         .tile-container {
-          perspective: 1000px;
           position: relative;
         }
 
-        /* Expanded beyond the grid cell so the tabs render into the
-           neighbouring cells. The piece body (inset by M on each side)
-           lines up exactly with the cell. */
-        .tile-inner {
+        /* Expanded beyond the grid cell so tabs render into the
+           neighbouring cells; the piece body lines up with the cell.
+           Top/bottom expand by % of height, left/right by % of width. */
+        .tile-piece {
           position: absolute;
-          inset: -${INSET_PCT}%;
-          transform-style: preserve-3d;
-          transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        .tile-inner.unlocked {
-          transform: rotateY(180deg);
-        }
-
-        .tile-face {
-          position: absolute;
-          inset: 0;
-          backface-visibility: hidden;
-          overflow: hidden;
-        }
-
-        /* Locked: opaque charcoal piece covering the word fragment. */
-        .tile-locked {
+          inset: -${f(INSET_TB)}% -${f(INSET_LR)}%;
           background-color: #2C2C2C;
+          transition: background-color 0.4s ease;
         }
 
-        .tile-locked .word-text {
-          color: #FFFFFF;
-          opacity: 0.08;
-        }
-
-        /* Unlocked: near-transparent sage membrane revealing the word. */
-        .tile-unlocked {
-          background-color: rgba(168, 189, 184, 0.12);
-          transform: rotateY(180deg);
+        /* Unlocked: fade the charcoal piece to a near-transparent sage
+           membrane, revealing the continuous word fragment behind it. */
+        .tile-piece.unlocked {
+          background-color: rgba(168, 189, 184, 0.1);
         }
       `}</style>
 
@@ -358,7 +322,7 @@ export default function LoyaltyCard() {
           {/* Back of card */}
           <div className="card-face card-back">
             <div className="puzzle-area">
-              {/* Single continuous word layer behind everything */}
+              {/* Single continuous word layer behind the grid */}
               <div className="word-base">
                 <span className="word-text">{WORD}</span>
               </div>
@@ -368,26 +332,9 @@ export default function LoyaltyCard() {
                 {tiles.map((tile) => (
                   <div key={tile.id} className="tile-container">
                     <div
-                      className={`tile-inner ${tile.isUnlocked ? 'unlocked' : ''}`}
-                    >
-                      {/* Locked face: charcoal piece + faint ghost fragment */}
-                      <div
-                        className="tile-face tile-locked"
-                        style={{ clipPath: `url(#clip${tile.id})` }}
-                      >
-                        <div style={wordLayerStyle(tile.id)}>
-                          <div className="word-base">
-                            <span className="word-text">{WORD}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Unlocked face: transparent membrane (word shows through) */}
-                      <div
-                        className="tile-face tile-unlocked"
-                        style={{ clipPath: `url(#clip${tile.id})` }}
-                      />
-                    </div>
+                      className={`tile-piece ${tile.isUnlocked ? 'unlocked' : ''}`}
+                      style={{ clipPath: `url(#clip${tile.id})` }}
+                    />
                   </div>
                 ))}
               </div>
