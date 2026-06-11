@@ -114,6 +114,8 @@ export default function LoyaltyCard() {
   const [isFlipped, setIsFlipped] = useState(false)
   const [tiles, setTiles] = useState(INITIAL_TILES)
 
+  const allUnlocked = tiles.every((t) => t.isUnlocked)
+
   const unlockRandomTile = () => {
     const lockedTiles = tiles.filter((t) => !t.isUnlocked)
     if (lockedTiles.length === 0) return
@@ -128,26 +130,6 @@ export default function LoyaltyCard() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-stone-100 p-4 flex-col gap-8">
-      {/* clipPath definitions for the jigsaw tiles */}
-      <svg
-        width="0"
-        height="0"
-        aria-hidden="true"
-        style={{ position: 'absolute' }}
-      >
-        <defs>
-          {TILE_PATHS.map((d, i) => (
-            <clipPath
-              key={i}
-              id={`clip${i}`}
-              clipPathUnits="objectBoundingBox"
-            >
-              <path d={d} />
-            </clipPath>
-          ))}
-        </defs>
-      </svg>
-
       <style>{`
         @keyframes flipCard {
           0% {
@@ -295,14 +277,36 @@ export default function LoyaltyCard() {
         .tile-piece {
           position: absolute;
           inset: -${f(INSET_TB)}% -${f(INSET_LR)}%;
-          background-color: #2C2C2C;
-          transition: background-color 0.4s ease;
         }
 
-        /* Unlocked: fade the charcoal piece to a near-transparent sage
-           membrane, revealing the continuous word fragment behind it. */
-        .tile-piece.unlocked {
-          background-color: rgba(168, 189, 184, 0.1);
+        .tile-svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+          overflow: visible;
+        }
+
+        /* Locked: solid charcoal fill, NO stroke. Adjacent locked tiles
+           interlock perfectly so the grid reads as one black rectangle. */
+        .tile-path {
+          fill: #2C2C2C;
+          stroke: #2C2C2C;
+          stroke-width: 1.5;
+          stroke-opacity: 0;
+          transition: fill 0.4s ease, stroke-opacity 0.3s ease;
+        }
+
+        /* Unlocked (puzzle incomplete): transparent fill revealing the
+           word layer, with a visible 1.5px charcoal jigsaw outline. */
+        .tile-path.unlocked {
+          fill: transparent;
+          stroke-opacity: 1;
+        }
+
+        /* Completion: every tile unlocked — fade the outlines away so the
+           final wordmark sits cleanly on the sage with zero puzzle seams. */
+        .tile-path.complete {
+          stroke-opacity: 0;
         }
       `}</style>
 
@@ -331,10 +335,20 @@ export default function LoyaltyCard() {
               <div className="grid-container">
                 {tiles.map((tile) => (
                   <div key={tile.id} className="tile-container">
-                    <div
-                      className={`tile-piece ${tile.isUnlocked ? 'unlocked' : ''}`}
-                      style={{ clipPath: `url(#clip${tile.id})` }}
-                    />
+                    <div className="tile-piece">
+                      <svg
+                        className="tile-svg"
+                        viewBox="0 0 1 1"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          className={`tile-path ${tile.isUnlocked ? 'unlocked' : ''} ${allUnlocked ? 'complete' : ''}`}
+                          d={TILE_PATHS[tile.id]}
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 ))}
               </div>
