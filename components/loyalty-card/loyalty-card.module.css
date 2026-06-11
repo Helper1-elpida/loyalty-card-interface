@@ -67,39 +67,8 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
-/* Matte cardstock grain: a low-opacity fractal-noise overlay sitting just
-   above the base colour/gradient but BELOW all card content (logo, puzzle
-   grid, word layer), so piece colours, clipPaths and readability are
-   untouched. No gloss — pure additive grain at ~6%. */
-.cardFace::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: 16px;
-  opacity: 0.08;
-  /* Fibrous cardstock: anisotropic fractal noise (fine horizontally, longer
-     vertically) reads as paper fibres rather than uniform digital grain. */
-  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="220" height="220"%3E%3Cfilter id="paper"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.045 0.7" numOctaves="4" stitchTiles="stitch"/%3E%3CfeColorMatrix type="saturate" values="0"/%3E%3C/filter%3E%3Crect width="220" height="220" filter="url(%23paper)"/%3E%3C/svg%3E');
-  background-size: 220px 220px;
-  mix-blend-mode: multiply;
-}
-
 .cardBack {
   transform: rotateY(180deg);
-}
-
-/* Keep all card content above the grain overlay. */
-.cardFace > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Charcoal back: lighten the grain so it reads on the dark surface. */
-.cardBack::after {
-  mix-blend-mode: overlay;
-  opacity: 0.07;
 }
 
 .logoWrap {
