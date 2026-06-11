@@ -115,6 +115,10 @@
 .puzzleArea {
   position: absolute;
   inset: 12.44% 7%;
+  /* Establish a sizing context so the word layer can scale to the grid's
+     width (not the viewport), keeping it aligned with the puzzle grid at
+     any card size. */
+  container-type: inline-size;
 }
 
 /* Single continuous TSUNDOKU layer sitting BEHIND the grid.
@@ -135,7 +139,7 @@
   font-weight: 900;
   white-space: nowrap;
   line-height: 1;
-  font-size: clamp(48px, 14vw, 112px);
+  font-size: 23cqw;
   letter-spacing: -2px;
   color: #2c2c2c;
   text-transform: lowercase;
