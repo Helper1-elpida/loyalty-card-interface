@@ -71,6 +71,21 @@
   transform: rotateY(180deg);
 }
 
+/* Subtle paper/cardstock grain on the BACK face only. Sits as a
+   non-interactive overlay above the sage/charcoal surface; low opacity
+   keeps tile colours, clipPaths and the word layer visually unchanged. */
+.cardBack::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="180" height="180"%3E%3Cfilter id="paperGrain"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3CfeColorMatrix type="saturate" values="0"/%3E%3C/filter%3E%3Crect width="180" height="180" filter="url(%23paperGrain)"/%3E%3C/svg%3E');
+  background-size: 180px 180px;
+}
+
 .logoWrap {
   position: relative;
 }
