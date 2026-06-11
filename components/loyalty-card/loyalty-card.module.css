@@ -18,11 +18,6 @@
   padding: 0;
   cursor: pointer;
   border-radius: 16px;
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.cardContainer:hover {
-  transform: translateY(-3px);
 }
 
 .cardContainer:focus-visible {
@@ -36,7 +31,7 @@
   position: relative;
   transform-style: preserve-3d;
   /* Refined, settled easing — no toy-like overshoot (#6). */
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .cardInner.flipped {
@@ -114,10 +109,12 @@
 }
 
 /* Puzzle work area: the shared word layer and the jigsaw grid both fill
-   this box. Inset proportionally so the cell aspect ratio stays constant. */
+   this box. The card is 16:9, so top/bottom % (of height) must be larger
+   than left/right % (of width) to keep the gap to all four card edges
+   visually equal: 7 * 16/9 ≈ 12.44% (#5). */
 .puzzleArea {
   position: absolute;
-  inset: 7%;
+  inset: 12.44% 7%;
 }
 
 /* Single continuous TSUNDOKU layer sitting BEHIND the grid.
@@ -139,6 +136,7 @@
   font-size: clamp(48px, 14vw, 112px);
   letter-spacing: 0.04em;
   color: #2c2c2c;
+  text-transform: lowercase;
 }
 
 .gridContainer {
@@ -207,8 +205,5 @@
   .cardInner,
   .tilePath {
     transition-duration: 0.01ms !important;
-  }
-  .cardContainer:hover {
-    transform: none;
   }
 }

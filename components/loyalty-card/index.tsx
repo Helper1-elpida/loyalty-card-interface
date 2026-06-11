@@ -59,11 +59,13 @@ export default function LoyaltyCard() {
         </div>
       </button>
 
-      <p className={styles.progress} aria-live="polite">
-        {allUnlocked
-          ? 'Complete! All 8 pieces unlocked.'
-          : `${unlockedCount} of ${TILE_COUNT} pieces unlocked`}
-      </p>
+      {isFlipped && (
+        <p className={styles.progress} aria-live="polite">
+          {allUnlocked
+            ? 'Complete! All 8 pieces unlocked.'
+            : `${unlockedCount} of ${TILE_COUNT} pieces unlocked`}
+        </p>
+      )}
 
       <button
         type="button"
