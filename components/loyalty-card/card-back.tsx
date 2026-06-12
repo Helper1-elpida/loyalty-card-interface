@@ -10,11 +10,16 @@ interface TileState {
 interface CardBackProps {
   tiles: TileState[]
   allUnlocked: boolean
+  isCelebrating?: boolean
 }
 
-export function CardBack({ tiles, allUnlocked }: CardBackProps) {
+export function CardBack({ tiles, allUnlocked, isCelebrating }: CardBackProps) {
   return (
-    <div className={styles.puzzleArea}>
+    <>
+      {/* One-shot diagonal shine sweep across the whole card on completion */}
+      {isCelebrating && <div className={styles.shine} aria-hidden="true" />}
+
+      <div className={styles.puzzleArea}>
       {/* Single continuous word layer behind the grid */}
       <div className={styles.wordBase}>
         <span className={styles.wordText}>{WORD}</span>
@@ -31,6 +36,7 @@ export function CardBack({ tiles, allUnlocked }: CardBackProps) {
           />
         ))}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

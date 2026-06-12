@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { COLS, ROWS, INSET_TB, INSET_LR } from './geometry'
 import { CardFront } from './card-front'
 import { CardBack } from './card-back'
+import { TavernSign } from './tavern-sign'
 import styles from './loyalty-card.module.css'
 
 const TILE_COUNT = COLS * ROWS
@@ -23,6 +24,9 @@ const gridVars = {
 export default function LoyaltyCard() {
   const [isFlipped, setIsFlipped] = useState(false)
   const [tiles, setTiles] = useState(INITIAL_TILES)
+  // One-shot completion celebration, fired only when the 8th tile unlocks.
+  const [isCelebrating, setIsCelebrating] = useState(false)
+  const hasCelebrated = useRef(false)
 
   const unlockedCount = tiles.filter((t) => t.isUnlocked).length
   const allUnlocked = unlockedCount === TILE_COUNT
@@ -31,17 +35,30 @@ export default function LoyaltyCard() {
     const locked = tiles.filter((t) => !t.isUnlocked)
     if (locked.length === 0) return
     const target = locked[Math.floor(Math.random() * locked.length)]
+    const nextUnlockedCount = unlockedCount + 1
     setTiles((prev) =>
       prev.map((t) => (t.id === target.id ? { ...t, isUnlocked: true } : t)),
     )
+
+    // Trigger the reveal sequence exactly once, the moment the final
+    // (8th) tile transitions from locked to unlocked.
+    if (nextUnlockedCount === TILE_COUNT && !hasCelebrated.current) {
+      hasCelebrated.current = true
+      setIsCelebrating(true)
+    }
   }
 
   return (
     <div className={styles.page} style={gridVars}>
       <button
         type="button"
-        className={styles.cardContainer}
+        className={`${styles.cardContainer} ${isCelebrating ? styles.celebrate : ''}`}
         onClick={() => setIsFlipped((v) => !v)}
+        onAnimationEnd={(e) => {
+          // Only the card container's own breathing animation should reset the
+          // flag — ignore the shine animation bubbling up from a descendant.
+          if (e.target === e.currentTarget) setIsCelebrating(false)
+        }}
         aria-pressed={isFlipped}
         aria-label={
           isFlipped
@@ -54,7 +71,7 @@ export default function LoyaltyCard() {
             <CardFront />
           </div>
           <div className={`${styles.cardFace} ${styles.cardBack}`}>
-            <CardBack tiles={tiles} allUnlocked={allUnlocked} />
+            <CardBack tiles={tiles} allUnlocked={allUnlocked} isCelebrating={isCelebrating} />
           </div>
         </div>
       </button>
