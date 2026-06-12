@@ -4,6 +4,7 @@ import { useRef, useState, type CSSProperties } from 'react'
 import { COLS, ROWS, INSET_TB, INSET_LR } from './geometry'
 import { CardFront } from './card-front'
 import { CardBack } from './card-back'
+import { TavernSign } from './tavern-sign'
 import styles from './loyalty-card.module.css'
 
 const TILE_COUNT = COLS * ROWS
