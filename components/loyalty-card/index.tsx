@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, type CSSProperties } from 'react'
-import { COLS, ROWS, INSET_TB, INSET_LR } from './geometry'
+import { COLS, ROWS, INSET_TB, INSET_LR, WORD } from './geometry'
 import { CardFront } from './card-front'
 import { CardBack } from './card-back'
 import { TavernSign } from './tavern-sign'
@@ -85,18 +85,21 @@ export default function LoyaltyCard() {
           className={`${styles.meaningPanel} ${showMeaning ? styles.meaningVisible : ''}`}
           aria-hidden={!showMeaning}
         >
-          <span className={styles.meaningWord}>tsundoku</span>
-          <span className={styles.meaningIntro}>η λέξη αυτή σημαίνει...</span>
-          <span className={styles.meaningText}>
+          <p className={styles.meaningSentence}>
+            η λέξη <span className={styles.meaningWord}>{WORD.toLowerCase()}</span>{' '}
+            σημαίνει...
+          </p>
+          <p className={styles.meaningText}>
             η συνήθεια να αγοράζεις βιβλία και να τα αφήνεις στοιβαγμένα, χωρίς ποτέ
             να τα διαβάσεις.
-          </span>
+          </p>
           <button
             type="button"
             className={styles.meaningBack}
             onClick={() => setShowMeaning(false)}
+            aria-label="Επιστροφή στην κάρτα"
           >
-            ← πίσω
+            ←
           </button>
         </div>
       </div>
