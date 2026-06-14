@@ -93,6 +93,10 @@ export default function LoyaltyCard() {
             η συνήθεια να αγοράζεις βιβλία και να τα αφήνεις στοιβαγμένα, χωρίς ποτέ
             να τα διαβάσεις.
           </p>
+          <hr className={styles.meaningRule} />
+          <p className={styles.meaningReward}>
+            Δείξτε το ολοκληρωμένο παζλ σας στον πάγκο παραγγελίας
+          </p>
           <button
             type="button"
             className={styles.meaningBack}

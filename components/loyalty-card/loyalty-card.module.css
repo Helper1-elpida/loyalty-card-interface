@@ -124,6 +124,26 @@
   text-align: center;
 }
 
+.meaningRule {
+  width: 100%;
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid #a8bdb8;
+  opacity: 0.25;
+}
+
+.meaningReward {
+  margin: 0 auto;
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 13px;
+  font-style: italic;
+  color: #a8bdb8;
+  opacity: 0.8;
+  max-width: 80%;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .meaningBack {
   position: absolute;
   bottom: 20px;
