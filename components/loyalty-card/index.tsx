@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, type CSSProperties } from 'react'
-import { COLS, ROWS, INSET_TB, INSET_LR } from './geometry'
+import { COLS, ROWS, INSET_TB, INSET_LR, WORD } from './geometry'
 import { CardFront } from './card-front'
 import { CardBack } from './card-back'
 import { TavernSign } from './tavern-sign'
@@ -24,6 +24,8 @@ const gridVars = {
 export default function LoyaltyCard() {
   const [isFlipped, setIsFlipped] = useState(false)
   const [tiles, setTiles] = useState(INITIAL_TILES)
+  // Toggles between the card and the meaning panel.
+  const [showMeaning, setShowMeaning] = useState(false)
   // One-shot completion celebration, fired only when the 8th tile unlocks.
   const [isCelebrating, setIsCelebrating] = useState(false)
   const hasCelebrated = useRef(false)
@@ -50,10 +52,12 @@ export default function LoyaltyCard() {
 
   return (
     <div className={styles.page} style={gridVars}>
-      <button
-        type="button"
-        className={`${styles.cardContainer} ${isCelebrating ? styles.celebrate : ''}`}
-        onClick={() => setIsFlipped((v) => !v)}
+      <div className={styles.cardStage}>
+        <div className={`${styles.cardShell} ${showMeaning ? styles.cardHidden : ''}`}>
+          <button
+            type="button"
+            className={`${styles.cardContainer} ${isCelebrating ? styles.celebrate : ''}`}
+            onClick={() => setIsFlipped((v) => !v)}
         onAnimationEnd={(e) => {
           // Only the card container's own breathing animation should reset the
           // flag — ignore the shine animation bubbling up from a descendant.
@@ -75,6 +79,44 @@ export default function LoyaltyCard() {
           </div>
         </div>
       </button>
+        </div>
+
+        <div
+          className={`${styles.meaningPanel} ${showMeaning ? styles.meaningVisible : ''}`}
+          aria-hidden={!showMeaning}
+        >
+          <p className={styles.meaningSentence}>
+            η λέξη <span className={styles.meaningWord}>{WORD.toLowerCase()}</span>{' '}
+            σημαίνει...
+          </p>
+          <p className={styles.meaningText}>
+            η συνήθεια να αγοράζεις βιβλία και να τα αφήνεις στοιβαγμένα, χωρίς ποτέ
+            να τα διαβάσεις.
+          </p>
+          <hr className={styles.meaningRule} />
+          <p className={styles.meaningReward}>
+            Δείξτε το ολοκληρωμένο παζλ σας στον πάγκο παραγγελίας
+          </p>
+          <button
+            type="button"
+            className={styles.meaningBack}
+            onClick={() => setShowMeaning(false)}
+            aria-label="Επιστροφή στην κάρτα"
+          >
+            ←
+          </button>
+        </div>
+      </div>
+
+      {allUnlocked && !showMeaning && (
+        <button
+          type="button"
+          className={styles.meaningHint}
+          onClick={() => setShowMeaning(true)}
+        >
+          tap to see the meaning
+        </button>
+      )}
 
       {isFlipped && (
         <p className={styles.progress} aria-live="polite">
