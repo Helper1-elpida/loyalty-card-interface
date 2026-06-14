@@ -133,7 +133,7 @@
   font-family: var(--font-dm-sans), sans-serif;
   font-size: 13px;
   font-style: italic;
-  color: #ffffff;
+  color: #424242;
   text-align: center;
   animation: hintFadeIn 0.4s ease-out both;
 }
