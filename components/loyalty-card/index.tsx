@@ -1,11 +1,14 @@
 'use client'
 
-import { useRef, useState, type CSSProperties } from 'react'
-import { COLS, ROWS, INSET_TB, INSET_LR, WORD } from './geometry'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { COLS, ROWS, INSET_TB, INSET_LR } from './geometry'
 import { CardFront } from './card-front'
 import { CardBack } from './card-back'
 import { TavernSign } from './tavern-sign'
+import { words, type WordEntry } from './words'
 import styles from './loyalty-card.module.css'
+
+const STORAGE_KEY = 'bollocks_word'
 
 const TILE_COUNT = COLS * ROWS
 
@@ -30,8 +33,35 @@ export default function LoyaltyCard() {
   const [isCelebrating, setIsCelebrating] = useState(false)
   const hasCelebrated = useRef(false)
 
+  // The active word/meaning, chosen on load and persisted across sessions.
+  const [selected, setSelected] = useState<WordEntry | null>(null)
+
   const unlockedCount = tiles.filter((t) => t.isUnlocked).length
   const allUnlocked = unlockedCount === TILE_COUNT
+
+  // On load: reuse the persisted word, or pick a fresh random one and save it.
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as WordEntry
+        if (parsed?.word && parsed?.meaning) {
+          setSelected(parsed)
+          return
+        }
+      } catch {
+        // fall through to picking a new word
+      }
+    }
+    const pick = words[Math.floor(Math.random() * words.length)]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pick))
+    setSelected(pick)
+  }, [])
+
+  // Once every tile is unlocked, clear storage so the next session re-rolls.
+  useEffect(() => {
+    if (allUnlocked) localStorage.removeItem(STORAGE_KEY)
+  }, [allUnlocked])
 
   const unlockRandomTile = () => {
     const locked = tiles.filter((t) => !t.isUnlocked)
@@ -75,7 +105,12 @@ export default function LoyaltyCard() {
             <CardFront />
           </div>
           <div className={`${styles.cardFace} ${styles.cardBack}`}>
-            <CardBack tiles={tiles} allUnlocked={allUnlocked} isCelebrating={isCelebrating} />
+            <CardBack
+              tiles={tiles}
+              allUnlocked={allUnlocked}
+              isCelebrating={isCelebrating}
+              word={selected?.word}
+            />
           </div>
         </div>
       </button>
@@ -86,13 +121,13 @@ export default function LoyaltyCard() {
           aria-hidden={!showMeaning}
         >
           <p className={styles.meaningSentence}>
-            η λέξη <span className={styles.meaningWord}>{WORD.toLowerCase()}</span>{' '}
+            η λέξη{' '}
+            <span className={styles.meaningWord}>
+              {selected?.word.toLowerCase()}
+            </span>{' '}
             σημαίνει...
           </p>
-          <p className={styles.meaningText}>
-            η συνήθεια να αγοράζεις βιβλία και να τα αφήνεις στοιβαγμένα, χωρίς ποτέ
-            να τα διαβάσεις.
-          </p>
+          <p className={styles.meaningText}>{selected?.meaning}</p>
           <hr className={styles.meaningRule} />
           <p className={styles.meaningReward}>
             Δείξτε το ολοκληρωμένο παζλ σας στον πάγκο παραγγελίας

@@ -11,9 +11,10 @@ interface CardBackProps {
   tiles: TileState[]
   allUnlocked: boolean
   isCelebrating?: boolean
+  word?: string
 }
 
-export function CardBack({ tiles, allUnlocked, isCelebrating }: CardBackProps) {
+export function CardBack({ tiles, allUnlocked, isCelebrating, word }: CardBackProps) {
   return (
     <>
       {/* One-shot diagonal shine sweep across the whole card on completion */}
@@ -22,7 +23,7 @@ export function CardBack({ tiles, allUnlocked, isCelebrating }: CardBackProps) {
       <div className={styles.puzzleArea}>
       {/* Single continuous word layer behind the grid */}
       <div className={styles.wordBase}>
-        <span className={styles.wordText}>{WORD}</span>
+        <span className={styles.wordText}>{word ?? WORD}</span>
       </div>
 
       {/* Jigsaw window grid */}
