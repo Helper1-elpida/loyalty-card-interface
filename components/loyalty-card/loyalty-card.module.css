@@ -297,6 +297,23 @@
   }
 }
 
+/* Single quick pulse confirming a piece is armed for unlock. */
+.armPulse {
+  animation: armPulse 0.3s ease;
+}
+
+@keyframes armPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .logoContainer {
   display: flex;
   align-items: baseline;

@@ -36,8 +36,12 @@ export default function LoyaltyCard() {
   // The active word/meaning, chosen on load and persisted across sessions.
   const [selected, setSelected] = useState<WordEntry | null>(null)
 
-  // Long-press unlock: holding the front logo for 3s unlocks a random tile.
+  // Long-press to ARM: holding the front logo for 3s arms an unlock. The
+  // actual tile unlock happens on the next tap of the puzzle (back face).
   const [pressing, setPressing] = useState(false)
+  const [unlockArmed, setUnlockArmed] = useState(false)
+  // One-shot scale pulse confirming a piece is ready to be unlocked.
+  const [pulsing, setPulsing] = useState(false)
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFired = useRef(false)
 
@@ -90,9 +94,12 @@ export default function LoyaltyCard() {
     longPressFired.current = false
     setPressing(true)
     pressTimer.current = setTimeout(() => {
+      // Held the full 3s: arm the unlock (don't unlock yet), restore the
+      // logo opacity, and fire a single quick scale pulse on the card.
       longPressFired.current = true
       setPressing(false)
-      unlockRandomTile()
+      setUnlockArmed(true)
+      setPulsing(true)
     }, 3000)
   }
 
@@ -101,7 +108,16 @@ export default function LoyaltyCard() {
       clearTimeout(pressTimer.current)
       pressTimer.current = null
     }
+    // Released early: snap the logo opacity back, leave unlockArmed untouched.
     setPressing(false)
+  }
+
+  // Once armed, the next tap on the puzzle unlocks a random tile, plays the
+  // normal reveal animations, then disarms. Taps while disarmed do nothing.
+  const handlePuzzleTap = () => {
+    if (!unlockArmed) return
+    unlockRandomTile()
+    setUnlockArmed(false)
   }
 
   return (
@@ -110,7 +126,7 @@ export default function LoyaltyCard() {
         <div className={`${styles.cardShell} ${showMeaning ? styles.cardHidden : ''}`}>
           <button
             type="button"
-            className={`${styles.cardContainer} ${isCelebrating ? styles.celebrate : ''}`}
+            className={`${styles.cardContainer} ${isCelebrating ? styles.celebrate : ''} ${pulsing ? styles.armPulse : ''}`}
             onClick={() => {
               // Swallow the click that ends a successful long-press so the
               // unlock gesture doesn't also flip the card.
@@ -123,7 +139,10 @@ export default function LoyaltyCard() {
         onAnimationEnd={(e) => {
           // Only the card container's own breathing animation should reset the
           // flag — ignore the shine animation bubbling up from a descendant.
-          if (e.target === e.currentTarget) setIsCelebrating(false)
+          if (e.target === e.currentTarget) {
+            setIsCelebrating(false)
+            setPulsing(false)
+          }
         }}
         aria-pressed={isFlipped}
         aria-label={
@@ -146,6 +165,8 @@ export default function LoyaltyCard() {
               allUnlocked={allUnlocked}
               isCelebrating={isCelebrating}
               word={selected?.word}
+              unlockArmed={unlockArmed}
+              onPuzzleTap={handlePuzzleTap}
             />
           </div>
         </div>
