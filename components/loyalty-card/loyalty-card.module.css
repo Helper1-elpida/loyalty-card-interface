@@ -427,6 +427,53 @@
   letter-spacing: 0.02em;
 }
 
+/* ---- Mobile phones (375px–430px). Sizing/spacing only ---- */
+@media (max-width: 480px) {
+  /* Keep at least 16px between the card/content and the screen edges. */
+  .page {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  /* The meaning panel shares the card's 16:9 footprint, which is short on
+     phones — tighten padding and scale type down so nothing overflows. */
+  .meaningPanel {
+    padding: 20px 18px;
+  }
+
+  .meaningSentence,
+  .meaningWord {
+    font-size: 16px;
+  }
+
+  .meaningText {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 92%;
+  }
+
+  .meaningRule {
+    margin: 12px 0;
+  }
+
+  .meaningReward {
+    font-size: 11px;
+    line-height: 1.45;
+    max-width: 92%;
+  }
+
+  .meaningBack {
+    bottom: 12px;
+    left: 16px;
+    font-size: 18px;
+  }
+
+  .meaningHint {
+    font-size: 12px;
+  }
+}
+
 /* Accessibility (#12): honour reduced-motion preferences. */
 @media (prefers-reduced-motion: reduce) {
   .cardContainer,
