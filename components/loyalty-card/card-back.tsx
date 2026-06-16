@@ -29,19 +29,27 @@ export function CardBack({ tiles, allUnlocked, isCelebrating, word }: CardBackPr
 
   // Scale the word to fill the grid width (minus padding) without overflowing.
   // Runs on mount and whenever the word changes; also re-fits on resize.
+  //
+  // We measure the text at whatever size is currently applied and scale
+  // linearly toward the available width. This avoids mutating the live
+  // element's inline style for measurement (which can leave a stale size
+  // stuck on the node when a re-render is skipped), and it caps the result
+  // at BASE_FONT_PX so short words never blow up past the base size.
   useLayoutEffect(() => {
     const fit = () => {
       const container = containerRef.current
       const text = textRef.current
       if (!container || !text) return
 
-      // Measure the natural width at a known base size, then scale linearly.
-      text.style.fontSize = `${BASE_FONT_PX}px`
-      const naturalWidth = text.scrollWidth
-      if (naturalWidth === 0) return
+      const currentSize = parseFloat(getComputedStyle(text).fontSize)
+      const currentWidth = text.scrollWidth
+      if (!currentSize || !currentWidth) return
 
       const available = container.clientWidth - H_PADDING_PX
-      setFontSize((BASE_FONT_PX * available) / naturalWidth)
+      if (available <= 0) return
+
+      const next = Math.min((currentSize * available) / currentWidth, BASE_FONT_PX)
+      setFontSize((prev) => (Math.abs(prev - next) < 0.5 ? prev : next))
     }
 
     fit()
