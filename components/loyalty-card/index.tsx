@@ -36,6 +36,11 @@ export default function LoyaltyCard() {
   // The active word/meaning, chosen on load and persisted across sessions.
   const [selected, setSelected] = useState<WordEntry | null>(null)
 
+  // Long-press unlock: holding the front logo for 3s unlocks a random tile.
+  const [pressing, setPressing] = useState(false)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressFired = useRef(false)
+
   const unlockedCount = tiles.filter((t) => t.isUnlocked).length
   const allUnlocked = unlockedCount === TILE_COUNT
 
@@ -80,6 +85,25 @@ export default function LoyaltyCard() {
     }
   }
 
+  const startPress = () => {
+    if (isFlipped || allUnlocked) return
+    longPressFired.current = false
+    setPressing(true)
+    pressTimer.current = setTimeout(() => {
+      longPressFired.current = true
+      setPressing(false)
+      unlockRandomTile()
+    }, 3000)
+  }
+
+  const endPress = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+    setPressing(false)
+  }
+
   return (
     <div className={styles.page} style={gridVars}>
       <div className={styles.cardStage}>
@@ -87,7 +111,15 @@ export default function LoyaltyCard() {
           <button
             type="button"
             className={`${styles.cardContainer} ${isCelebrating ? styles.celebrate : ''}`}
-            onClick={() => setIsFlipped((v) => !v)}
+            onClick={() => {
+              // Swallow the click that ends a successful long-press so the
+              // unlock gesture doesn't also flip the card.
+              if (longPressFired.current) {
+                longPressFired.current = false
+                return
+              }
+              setIsFlipped((v) => !v)
+            }}
         onAnimationEnd={(e) => {
           // Only the card container's own breathing animation should reset the
           // flag — ignore the shine animation bubbling up from a descendant.
@@ -102,7 +134,11 @@ export default function LoyaltyCard() {
       >
         <div className={`${styles.cardInner} ${isFlipped ? styles.flipped : ''}`}>
           <div className={styles.cardFace}>
-            <CardFront />
+            <CardFront
+              pressing={pressing}
+              onPressStart={startPress}
+              onPressEnd={endPress}
+            />
           </div>
           <div className={`${styles.cardFace} ${styles.cardBack}`}>
             <CardBack
@@ -160,15 +196,6 @@ export default function LoyaltyCard() {
             : `${unlockedCount} of ${TILE_COUNT} pieces unlocked`}
         </p>
       )}
-
-      <button
-        type="button"
-        onClick={unlockRandomTile}
-        disabled={allUnlocked}
-        className="px-6 py-2 bg-stone-300 hover:bg-stone-400 disabled:opacity-50 disabled:cursor-not-allowed text-stone-900 font-semibold rounded-lg transition-colors"
-      >
-        Unlock Random Tile
-      </button>
     </div>
   )
 }

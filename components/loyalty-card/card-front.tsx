@@ -1,8 +1,31 @@
+import type { CSSProperties } from 'react'
 import styles from './loyalty-card.module.css'
 
-export function CardFront() {
+interface CardFrontProps {
+  // True while the user is holding the logo; drives the gentle opacity dip.
+  pressing?: boolean
+  onPressStart?: () => void
+  onPressEnd?: () => void
+}
+
+export function CardFront({ pressing, onPressStart, onPressEnd }: CardFrontProps) {
+  // While pressing, fade toward 0.6 over the full 3s hold; on release the
+  // opacity snaps back to 1 quickly so an early let-go feels immediate.
+  const logoStyle: CSSProperties = {
+    opacity: pressing ? 0.6 : 1,
+    transition: pressing ? 'opacity 3s linear' : 'opacity 0.15s ease',
+  }
+
   return (
-    <div className={styles.logoWrap}>
+    <div
+      className={styles.logoWrap}
+      style={logoStyle}
+      onMouseDown={onPressStart}
+      onMouseUp={onPressEnd}
+      onMouseLeave={onPressEnd}
+      onTouchStart={onPressStart}
+      onTouchEnd={onPressEnd}
+    >
       <div className={styles.logoContainer}>
         <div className={styles.logoThe}>the</div>
         <div className={styles.logoBollocks}>bollocks</div>
