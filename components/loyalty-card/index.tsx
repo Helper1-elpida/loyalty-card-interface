@@ -177,14 +177,13 @@ export default function LoyaltyCard() {
           className={`${styles.meaningPanel} ${showMeaning ? styles.meaningVisible : ''}`}
           aria-hidden={!showMeaning}
         >
-          <p className={styles.meaningSentence}>
-            η λέξη{' '}
-            <span className={styles.meaningWord}>
-              {selected?.word.toLowerCase()}
-            </span>{' '}
-            σημαίνει...
+          <p className={styles.meaningWord}>
+            {selected?.word.toLowerCase()}
           </p>
-          <p className={styles.meaningText}>{selected?.meaning}</p>
+          <p className={styles.meaningText}>
+            <span className={styles.meaningPrefix}>meaning: </span>
+            {selected?.meaning}
+          </p>
           <hr className={styles.meaningRule} />
           <p className={styles.meaningReward}>
             Δείξτε το ολοκληρωμένο παζλ σας στον πάγκο παραγγελίας

@@ -101,10 +101,12 @@
 }
 
 .meaningWord {
+  margin: 0;
   font-family: var(--font-dm-sans), sans-serif;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #a8bdb8;
+  text-align: center;
   text-transform: lowercase;
   /* Clean rendering: no chromatic split / glow on the word. */
   text-shadow: none;
@@ -114,14 +116,18 @@
 }
 
 .meaningText {
-  margin: 20px auto 0;
+  margin: 12px auto 0;
   font-family: var(--font-dm-sans), sans-serif;
   font-size: 18px;
-  font-weight: 300;
+  font-weight: 400;
   color: #ffffff;
   max-width: 85%;
-  line-height: 1.8;
+  line-height: 1.7;
   text-align: center;
+}
+
+.meaningPrefix {
+  color: #a8bdb8;
 }
 
 .meaningRule {
@@ -458,16 +464,15 @@
     padding: 20px 18px;
   }
 
-  .meaningSentence,
   .meaningWord {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .meaningText {
     margin-top: 12px;
-    font-size: 13px;
-    line-height: 1.5;
-    max-width: 92%;
+    font-size: 18px;
+    line-height: 1.7;
+    max-width: 85%;
   }
 
   .meaningRule {
