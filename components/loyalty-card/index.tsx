@@ -180,11 +180,12 @@ export default function LoyaltyCard() {
           <p className={styles.meaningWord}>
             {selected?.word.toLowerCase()}
           </p>
-          <p className={styles.meaningText}>
-            <span className={styles.meaningPrefix}>meaning: </span>
-            {selected?.meaning}
-          </p>
-          <hr className={styles.meaningRule} />
+          <div className={styles.meaningBody}>
+            <p className={styles.meaningText}>
+              <span className={styles.meaningPrefix}>meaning: </span>
+              {selected?.meaning}
+            </p>
+          </div>
           <p className={styles.meaningReward}>
             Δείξτε το ολοκληρωμένο παζλ σας στον πάγκο παραγγελίας
           </p>
