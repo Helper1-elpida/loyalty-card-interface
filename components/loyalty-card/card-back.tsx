@@ -18,9 +18,19 @@ interface CardBackProps {
   allUnlocked: boolean
   isCelebrating?: boolean
   word?: string
+  // True when a long-press has armed an unlock; a puzzle tap then unlocks.
+  unlockArmed?: boolean
+  onPuzzleTap?: () => void
 }
 
-export function CardBack({ tiles, allUnlocked, isCelebrating, word }: CardBackProps) {
+export function CardBack({
+  tiles,
+  allUnlocked,
+  isCelebrating,
+  word,
+  unlockArmed,
+  onPuzzleTap,
+}: CardBackProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
   const [fontSize, setFontSize] = useState<number>(BASE_FONT_PX)
@@ -64,7 +74,17 @@ export function CardBack({ tiles, allUnlocked, isCelebrating, word }: CardBackPr
       {/* One-shot diagonal shine sweep across the whole card on completion */}
       {isCelebrating && <div className={styles.shine} aria-hidden="true" />}
 
-      <div className={styles.puzzleArea}>
+      <div
+        className={styles.puzzleArea}
+        onClick={(e) => {
+          // When armed, a tap unlocks a tile and is swallowed so it doesn't
+          // also flip the card. When not armed, do nothing (let it bubble).
+          if (unlockArmed) {
+            e.stopPropagation()
+            onPuzzleTap?.()
+          }
+        }}
+      >
       {/* Single continuous word layer behind the grid */}
       <div className={styles.wordBase} ref={containerRef}>
         <span className={styles.wordText} ref={textRef} style={{ fontSize }}>
